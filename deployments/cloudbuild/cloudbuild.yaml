@@ -16,5 +16,5 @@ substitutions:
   _VERSION: rust-$SHORT_SHA
   _DOCKER_FILE_PATH: deployments/docker/Dockerfile
 options:
-  dynmaicSubtitutions: true
+  dynamicSubtitutions: true
   logging: CLOUD_LOGGING_ONLY
