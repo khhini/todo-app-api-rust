@@ -1,0 +1,13 @@
+version: "3.3"
+services:
+  todo-app-api:
+    image: khhini/todo-app-api:rust-v1.0.0
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile
+    container_name: todo_app_api
+    environment:
+      - LISTENER.HOST=0.0.0.0
+      - LISTENER.PORT=8080
+    ports:
+      - 8000:8080
