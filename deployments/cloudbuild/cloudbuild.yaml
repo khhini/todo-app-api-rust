@@ -13,8 +13,9 @@ steps:
 substitutions:
   _DOCKER_REGISTRY: asia-southeast2-docker.pkg.dev/dev-devsecops-exp/khhini-dev
   _APP_NAME: todo-app-api
-  _VERSION: rust-$SHORT_SHA
+  _VERSION: rust
   _DOCKER_FILE_PATH: deployments/docker/Dockerfile
+
 options:
-  dynamicSubstitutions: true
+  # dynamicSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
