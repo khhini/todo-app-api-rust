@@ -2,8 +2,8 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: 
     - 'build'
-    - '-tag=$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION'
-    - '-file=$_DOCKER_FILE_PATH'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION'
+    - '--file=$_DOCKER_FILE_PATH'
     - '.'
 
 
