@@ -11,7 +11,7 @@ steps:
     args: ['push', '$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION']
 
 substitutions:
-  _DOCKER_REGISTRY: khhini
+  _DOCKER_REGISTRY: asia-southeast2-docker.pkg.dev/khhini-argocd-gitops-exp/khhini-dev
   _APP_NAME: todo-app-api
   _VERSION: rust-${SHORT_SHA}
   _DOCKER_FILE_PATH: deployments/docker/Dockerfile
