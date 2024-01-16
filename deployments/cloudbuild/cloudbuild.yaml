@@ -1,14 +1,25 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args: 
+    - '-c'
+    - 'docker pull $_DOCKER_REGISTRY/$_APP_NAME:latest || exit 0'
+
+  - name: 'gcr.io/cloud-builders/docker'
     args: 
     - 'build'
+    - '--cache-from=$_DOCKER_REGISTRY/$_APP_NAME:latest'
     - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:latest'
     - '--file=$_DOCKER_FILE_PATH'
     - '.'
 
-
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION']
+    args: 
+    - 'image'
+    - 'push'
+    - '--all-tags'
+    - '$_DOCKER_REGISTRY/$_APP_NAME'
 
 substitutions:
   _DOCKER_REGISTRY: asia-southeast2-docker.pkg.dev/khhini-argocd-gitops-exp/khhini-dev
