@@ -16,7 +16,7 @@ pub fn handler_config(cfg: &mut web::ServiceConfig) {
 
 async fn hello() -> impl Responder {
     HttpResponse::Ok().json(Hello {
-        message: "Hello, From Version v1.0.0!".to_string()
+        message: "Hello, World!".to_string()
     })
 }
 
