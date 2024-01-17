@@ -48,6 +48,9 @@ steps:
       Author: $(git log --format='%an <%ae>' -n 1 HEAD)
       Date: $(git log --format='%ad' -n 1 HEAD)"
       git push origin main
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
   
   # Push all images to registry
   - name: 'gcr.io/cloud-builders/docker'
