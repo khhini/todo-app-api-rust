@@ -1,22 +1,22 @@
 steps:
   # Pull latest image for cache
-  # - name: 'gcr.io/cloud-builders/docker'
-  #   id: 'pull-latest-image'
-  #   entrypoint: 'bash'
-  #   args: 
-  #   - '-c'
-  #   - 'docker pull $_DOCKER_REGISTRY/$_APP_NAME:latest || exit 0'
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-latest-image'
+    entrypoint: 'bash'
+    args: 
+    - '-c'
+    - 'docker pull $_DOCKER_REGISTRY/$_APP_NAME:latest || exit 0'
 
-  # # Build image
-  # - name: 'gcr.io/cloud-builders/docker'
-  #   id: 'build-image'
-  #   args: 
-  #   - 'build'
-  #   - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
-  #   - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:latest'
-  #   - '--cache-from=$_DOCKER_REGISTRY/$_APP_NAME:latest'
-  #   - '--file=$_DOCKER_FILE_PATH'
-  #   - '.'
+  # Build image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args: 
+    - 'build'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:latest'
+    - '--cache-from=$_DOCKER_REGISTRY/$_APP_NAME:latest'
+    - '--file=$_DOCKER_FILE_PATH'
+    - '.'
 
   # Update deployment deployment manifest
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -30,7 +30,7 @@ steps:
       # Authenticate to GitHu
       mkdir -p /root/.ssh
       chmod 700 /root/.ssh
-      
+
       echo "$$GITHUB_SSH_KEY" | base64 --decode > /root/.ssh/id_rsa
       chmod 600 /root/.ssh/id_rsa
       ssh-keyscan github.com > /root/.ssh/known_hosts
