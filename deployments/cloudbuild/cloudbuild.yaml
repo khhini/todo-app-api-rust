@@ -18,6 +18,15 @@ steps:
     - '--file=$_DOCKER_FILE_PATH'
     - '.'
 
+  # Push all images to registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args: 
+    - 'image'
+    - 'push'
+    - '--all-tags'
+    - '$_DOCKER_REGISTRY/$_APP_NAME'
+
   # Update deployment deployment manifest
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'update-deployment-manifest'
@@ -51,15 +60,6 @@ steps:
       Author: $(git log --format='%an <%ae>' -n 1 HEAD)
       Date: $(git log --format='%ad' -n 1 HEAD)"
       git push origin main
-  
-  # Push all images to registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-image'
-    args: 
-    - 'image'
-    - 'push'
-    - '--all-tags'
-    - '$_DOCKER_REGISTRY/$_APP_NAME'
 
 substitutions:
   _APP_NAME: todo-app-api
