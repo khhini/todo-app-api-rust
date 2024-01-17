@@ -1,6 +1,7 @@
 steps:
   # Pull latest image for cache
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-latest-image'
     entrypoint: 'bash'
     args: 
     - '-c'
@@ -8,6 +9,7 @@ steps:
 
   # Build image
   - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
     args: 
     - 'build'
     - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
@@ -16,33 +18,46 @@ steps:
     - '--file=$_DOCKER_FILE_PATH'
     - '.'
 
-  # Pull deployment repository
-  - name: 'gcr.io/cloud-builders/git'
-    args: 
-    - 'clone'
-    - '$_DEPLOYMENT_REPO'
-
   # Update deployment deployment manifest
   - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'update-deployment-manifest'
     entrypoint: 'bash'
+    secretEnv:
+      - GITHUB_SSH_KEY
     args: 
     - '-c'
     - |
+      # Authenticate to GitHub
+      eval `ssh-agent -s`
+      ssh-add <(echo "$GITHUB_SSH_KEY" | base64 --decode)
+      ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # Clone repository
+      git clone $_DEPLOYMENT_REPO
+
+      # Update deployment manifest
       cd $_DEPLOYMENT_DIR
       sed -i "s#newTag:.*#newTag: $_DOCKER_TAG#g" $_DEPLOYMENT_MANIFEST_PATH/kustomization.yaml
-      git config --global user.email $(git log --format='%an <%ae>' -n 1 HEAD)
-      git config --global user.name $(git log --format='%an <%ae>' -n 1 HEAD)
+
+      # Commit and push changes
+      git config --global user.email $(git log --format='%ae' -n 1 HEAD)
+      git config --global user.name $(git log --format='%an' -n 1 HEAD)
       git add $_DEPLOYMENT_MANIFEST_PATH/kustomization.yaml
       git commit -m "Deploying ${_APP_NAME} image ${_DOCKER_REGISTRY}/${_APP_NAME}:${_DOCKER_TAG} to ${_ENVIRONMENT} environment
       Built from commit $REPO_FULL_NAME/$COMMIT_SHA on $SHORT_SHA
       Author: $(git log --format='%an <%ae>' -n 1 HEAD)
       Date: $(git log --format='%ad' -n 1 HEAD)"
       git push origin main
+  
+  # Push all images to registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args: 
+    - 'image'
+    - 'push'
+    - '--all-tags'
+    - '$_DOCKER_REGISTRY/$_APP_NAME'
 
-
-images:
-  - '$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
-  - '$_DOCKER_REGISTRY/$_APP_NAME:latest'
 
 substitutions:
   _APP_NAME: todo-app-api
@@ -55,6 +70,11 @@ substitutions:
   _DEPLOYMENT_MANIFEST_PATH: overlays/${_ENVIRONMENT}
 
 timeout: 1200s
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/khhini-argocd-gitops-exp/secrets/github-ssh-key/versions/latest
+    env: 'GITHUB_SSH_KEY'
 
 options:
   dynamicSubstitutions: true
