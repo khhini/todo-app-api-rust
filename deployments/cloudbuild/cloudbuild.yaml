@@ -1,29 +1,60 @@
 steps:
+  # Pull latest image for cache
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args: 
     - '-c'
     - 'docker pull $_DOCKER_REGISTRY/$_APP_NAME:latest || exit 0'
 
+  # Build image
   - name: 'gcr.io/cloud-builders/docker'
     args: 
     - 'build'
-    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
     - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:latest'
     - '--cache-from=$_DOCKER_REGISTRY/$_APP_NAME:latest'
     - '--file=$_DOCKER_FILE_PATH'
     - '.'
 
+  # Pull deployment repository
+  - name: 'gcr.io/cloud-builders/git'
+    args: 
+    - 'clone'
+    - '$_DEPLOYMENT_REPO'
+
+  # Update deployment deployment manifest
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args: 
+    - '-c'
+    - |
+      cd $_DEPLOYMENT_DIR
+      sed -i "s#newTag:.*#newTag: $_DOCKER_TAG#g" $_DEPLOYMENT_MANIFEST_PATH/kustomization.yaml"
+      git config --global user.email $(git log --format='%an <%ae>' -n 1 HEAD)
+      git config --global user.name $(git log --format='%an <%ae>' -n 1 HEAD)
+      git add $_DEPLOYMENT_MANIFEST_PATH/kustomization.yaml
+      git commit -m "Deploying ${_APP_NAME} image ${_DOCKER_REGISTRY}/${_APP_NAME}:${_DOCKER_TAG} to ${_ENVIRONMENT} environment
+      Built from commit $REPO_FULL_NAME/$COMMIT_SHA on $SHORT_SHA
+      Author: $(git log --format='%an <%ae>' -n 1 HEAD)
+      Date: $(git log --format='%ad' -n 1 HEAD)"
+      git push origin main
+
 
 images:
-  - '$_DOCKER_REGISTRY/$_APP_NAME:$_VERSION'
+  - '$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
   - '$_DOCKER_REGISTRY/$_APP_NAME:latest'
 
 substitutions:
   _DOCKER_REGISTRY: asia-southeast2-docker.pkg.dev/khhini-argocd-gitops-exp/khhini-dev
   _APP_NAME: todo-app-api
-  _VERSION: rust-${SHORT_SHA}
+  _DOCKER_TAG: rust-${SHORT_SHA}
+  _ENVIRONMENT: staging
   _DOCKER_FILE_PATH: deployments/docker/Dockerfile
+  _DEPLOYMENT_REPO: https://github.com/khhini/todo-app-deploy.git
+  _DEPLOYMENT_DIR: todo-app-deploy
+  _DEPLOYMENT_MANIFEST_PATH: overlays/${_ENVIRONMENT}
+
+timeout: 1200s
 
 options:
   dynamicSubstitutions: true
