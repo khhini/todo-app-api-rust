@@ -27,11 +27,13 @@ steps:
     args: 
     - '-c'
     - |
-      # Authenticate to GitHub
-      mkdir -p ~/.ssh
-      echo "$$GITHUB_SSH_KEY" | base64 --decode > ~/.ssh/id_rsa
-      chmod 600 ~/.ssh/id_rsa
-      ssh-keyscan github.com > ~/.ssh/known_hosts
+      # Authenticate to GitHu
+      mkdir -p /root/.ssh
+      chmod 700 /root/.ssh
+      
+      echo "$$GITHUB_SSH_KEY" | base64 --decode > /root/.ssh/id_rsa
+      chmod 600 /root/.ssh/id_rsa
+      ssh-keyscan github.com > /root/.ssh/known_hosts
 
       # Clone repository
       git clone $_DEPLOYMENT_REPO
