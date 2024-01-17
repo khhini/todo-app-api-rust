@@ -1,0 +1,83 @@
+steps:
+  # Pull latest image for cache
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'pull-latest-image'
+    entrypoint: 'bash'
+    args: 
+    - '-c'
+    - 'docker pull $_DOCKER_REGISTRY/$_APP_NAME:latest || exit 0'
+
+  # Build image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args: 
+    - 'build'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:$_DOCKER_TAG'
+    - '--tag=$_DOCKER_REGISTRY/$_APP_NAME:latest'
+    - '--cache-from=$_DOCKER_REGISTRY/$_APP_NAME:latest'
+    - '--file=$_DOCKER_FILE_PATH'
+    - '.'
+
+  # Push all images to registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args: 
+    - 'image'
+    - 'push'
+    - '--all-tags'
+    - '$_DOCKER_REGISTRY/$_APP_NAME'
+
+  # Update deployment deployment manifest
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'update-deployment-manifest'
+    entrypoint: 'bash'
+    secretEnv:
+      - GITHUB_SSH_KEY
+    args: 
+    - '-c'
+    - |
+      # Authenticate to GitHu
+      mkdir -p /root/.ssh
+      chmod 700 /root/.ssh
+
+      echo "$$GITHUB_SSH_KEY" | base64 --decode > /root/.ssh/id_rsa
+      chmod 600 /root/.ssh/id_rsa
+      ssh-keyscan github.com > /root/.ssh/known_hosts
+
+      # Clone repository
+      git clone $_DEPLOYMENT_REPO
+
+      # Update deployment manifest
+      cd $_DEPLOYMENT_DIR
+      sed -i "s#newTag:.*#newTag: $_DOCKER_TAG#g" $_DEPLOYMENT_MANIFEST_PATH/kustomization.yaml
+
+      # Commit and push changes
+      git config --global user.email $(git log --format='%ae' -n 1 HEAD)
+      git config --global user.name $(git log --format='%an' -n 1 HEAD)
+      git add $_DEPLOYMENT_MANIFEST_PATH/kustomization.yaml
+      git commit -m "Deploying ${_APP_NAME} image ${_DOCKER_REGISTRY}/${_APP_NAME}:${_DOCKER_TAG} to ${_ENVIRONMENT} environment
+      Built from commit $REPO_FULL_NAME/$COMMIT_SHA on $SHORT_SHA
+      Author: $(git log --format='%an <%ae>' -n 1 HEAD)
+      Date: $(git log --format='%ad' -n 1 HEAD)"
+      git push origin main
+
+substitutions:
+  _APP_NAME: todo-app-api
+  _ENVIRONMENT: staging
+  _DOCKER_TAG: rust-${SHORT_SHA}
+  _DOCKER_REGISTRY: asia-southeast2-docker.pkg.dev/khhini-argocd-gitops-exp/khhini-dev
+  _DOCKER_FILE_PATH: deployments/docker/Dockerfile
+  _DEPLOYMENT_REPO: git@github.com:khhini/todo-app-deploy.git
+  _DEPLOYMENT_DIR: todo-app-deploy
+  _DEPLOYMENT_MANIFEST_PATH: overlays/${_ENVIRONMENT}
+
+timeout: 1200s
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/217812440927/secrets/github-ssh-key/versions/latest
+    env: 'GITHUB_SSH_KEY'
+
+options:
+  dynamicSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
