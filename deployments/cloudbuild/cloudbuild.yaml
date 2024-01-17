@@ -58,14 +58,13 @@ steps:
     - '--all-tags'
     - '$_DOCKER_REGISTRY/$_APP_NAME'
 
-
 substitutions:
   _APP_NAME: todo-app-api
   _ENVIRONMENT: staging
   _DOCKER_TAG: rust-${SHORT_SHA}
   _DOCKER_REGISTRY: asia-southeast2-docker.pkg.dev/khhini-argocd-gitops-exp/khhini-dev
   _DOCKER_FILE_PATH: deployments/docker/Dockerfile
-  _DEPLOYMENT_REPO: https://github.com/khhini/todo-app-deploy.git
+  _DEPLOYMENT_REPO: git@github.com:khhini/todo-app-deploy.git
   _DEPLOYMENT_DIR: todo-app-deploy
   _DEPLOYMENT_MANIFEST_PATH: overlays/${_ENVIRONMENT}
 
@@ -73,7 +72,7 @@ timeout: 1200s
 
 availableSecrets:
   secretManager:
-  - versionName: projects/khhini-argocd-gitops-exp/secrets/github-ssh-key/versions/latest
+  - versionName: projects/217812440927/secrets/github-ssh-key/versions/latest
     env: 'GITHUB_SSH_KEY'
 
 options:
